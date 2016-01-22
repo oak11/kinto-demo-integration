@@ -16,28 +16,34 @@ $(document).ready(function() {
   // Authentication from location hash
   authenticate(window.location.hash.slice(1))
     .then(function (authInfo){
+      if(!authInfo.hasOwnProperty("headers")){
+        return authInfo;
+      }
       var bucket = 'central-repository'            //specify bucket and collection name here, or make it static in the url
       var collection = 'users'
-      var hash = md5(authInfo.user_id);            //hashed the user_id to find record ID
-      var input = string2ascii(hash);
-      var record_id = uuid.v4({random: input});   // This is the record id, search for this in central repository
-      var authorization =  "Basic " + btoa("user:password");
+      console.log(authInfo.username);
+      var hash = md5(authInfo.username);            //hashed the user_id to find record ID
+      var input = parseHexString(hash);
+      var record_id = uuid.v4({random: input});
+      console.log(record_id);  // This is the record id, search for this in central repository
+      //var authorization =  "Basic " + btoa("user:password");
       var url = storageServer+'/buckets/'+ bucket +'/collections/'+ collection + '/records/'+ record_id;
       console.log("to be fetched");
-      fetch(url,{ headers: {'Authorization': authorization}})  //query central repository to check if user is already there
-      .then(function (response){
-        if (response.status >= 200 && response.status < 300) {
-                    console.log(response.json().url);   //still have to assign value
-         return authInfo
-        }
-        else {
-          authInfo.user_server = "https://kinto.dev.mozaws.net/v1"; //use default if record not found
-          return authInfo
+      fetch(url, headers)
+      .then(response => {
+        if (response.status === 403) {
+           return {url: "https://kinto.dev.mozaws.net/v1"};
           }
-      })
+        return response.json();
+        })
+
+          return authInfo;
+
     })
+
     .then(function (authInfo) {
     //  window.location.hash = authInfo.token;
+
       headers = authInfo.headers;
 
       // Kinto client with sync options.
@@ -257,6 +263,7 @@ $(document).ready(function() {
       authInfo.token = '';
       authInfo.headers = {Authorization: 'Bearer ' + bearerToken};
 
+
       $('#login').html('<a href="#">Log out</a>');
       $('#login').click(function() {
         window.location.hash = '#public';
@@ -264,17 +271,15 @@ $(document).ready(function() {
         return false;
       });
 
-      // Fetch user info from FxA profile server
-      return fetch(profileServer + '/profile', {headers: authInfo.headers})
-        .then(function (response) {
-          return response.json();
-        })
-        .then(function (profile) {
-          authInfo.username = profile.uid;
-          authInfo.user_id = 'fxaoauth:'+profile.uid;
-          console.log(authInfo.user_id);
-          return authInfo;
-        });
+      // Fetch user info
+      return fetch(storageServer + '/', {headers: authInfo.headers})
+       .then(function (response) {
+         return response.json();
+       })
+       .then(function (result) {
+         authInfo.username = result.user.id;
+         return authInfo;
+       });
     }
 
     // Otherwise token provided via hash (no FxA).
@@ -289,9 +294,13 @@ $(document).ready(function() {
     return Promise.resolve(authInfo);
   }
 });
-function string2ascii(str) {
-  var cc = [];
-  for(var i = 0; i < str.length; ++i)
-    cc.push(str.charCodeAt(i));
-  return cc;
+function parseHexString(str) {
+    var result = [];
+    while (str.length >= 2) {
+        result.push(parseInt(str.substring(0, 2), 16));
+
+        str = str.substring(2, str.length);
+    }
+
+    return result;
 }
