@@ -29,7 +29,7 @@ $(document).ready(function() {
       //var authorization =  "Basic " + btoa("user:password");
       var url = storageServer+'/buckets/'+ bucket +'/collections/'+ collection + '/records/'+ record_id;
       console.log("to be fetched");
-      fetch(url, headers)
+      fetch(url, {headers: authInfo.headers})
       .then(response => {
         if (response.status === 403) {
            return {url: "https://kinto.dev.mozaws.net/v1"};
