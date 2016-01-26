@@ -291,6 +291,14 @@ $(document).ready(function() {
 
     var uri = loginURI(window.location.href);
     $('#login').html(`<a href="${uri}">Login with Firefox Account</a>`);
+    $('#disconnect').html('<a href="#">Disconnect</a>');
+    $('#disconnect').click(function() {
+      window.location.hash = '';
+
+      var request = store.clear();
+      window.location.reload();
+      return false;
+    });
     return Promise.resolve(authInfo);
   }
 });
