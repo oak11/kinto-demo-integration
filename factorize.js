@@ -16,6 +16,7 @@ function registerUserURL(user_id, central_repository_server, headers, user_stora
   .then(function(data) {
 
     console.log(data.statusText);
+    console.log(data);
     //if (statusText == 'OK'){
       //status= "record already exists";
     //}
@@ -32,7 +33,7 @@ function registerUserURL(user_id, central_repository_server, headers, user_stora
    })
  }
     else {
-      console.log(errors);
+      console.log(error);
     }
 });
 }
