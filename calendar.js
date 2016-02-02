@@ -26,26 +26,24 @@ $(document).ready(function() {
       var central_repository_server = storageServer+'/buckets/'+ bucket +'/collections/'+ collection + '/records/';
       retrieveUserStorage(authInfo.username, central_repository_server, default_server, authInfo.headers)
       .then(function(response){
-        authInfo.userStorage = response;
-        console.log(authInfo.userStorage);
-      });
-          console.log(authInfo.userStorage);
-          return authInfo;
 
-    })
+        userStorage = response;
 
-    .then(function (authInfo) {
+
+
+
+
     //  window.location.hash = authInfo.token;
 
       headers = authInfo.headers;
 
       // Kinto client with sync options.
-      var kinto = new Kinto({remote: authInfo.userStorage,   //this will have authInfo.server (user's server)
+      var kinto = new Kinto({remote: userStorage,   //this will have authInfo.server (user's server)
                              bucket: bucket_id,
                              headers: headers,
                              dbPrefix: authInfo.username});
       store = kinto.collection(collection_id);
-    })
+    })})
     // Show calendar
     .then(init)
     // Setup live-sync!
