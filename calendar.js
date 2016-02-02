@@ -4,6 +4,7 @@ $(document).ready(function() {
   var profileServer = "https://stable.dev.lcip.org/profile/v1";
   var bucket_id = "default";
   var collection_id = "kinto_demo_calendar";
+  var userStorage = "";
 
   // Pusher app key (as deployed on Mozila demo server)
   var pusher_key = "01a9feaaf9ebb120d1a6";
@@ -21,22 +22,13 @@ $(document).ready(function() {
       }
       var bucket = 'central-repository'            //specify bucket and collection name here, or make it static in the url
       var collection = 'users'
-      console.log(authInfo.username);
-      var hash = md5(authInfo.username);            //hashed the user_id to find record ID
-      var input = parseHexString(hash);
-      var record_id = uuid.v4({random: input});
-      console.log(record_id);  // This is the record id, search for this in central repository
-      
-      var url = storageServer+'/buckets/'+ bucket +'/collections/'+ collection + '/records/'+ record_id;
-      console.log("to be fetched");
-      fetch(url, {headers: authInfo.headers})
-      .then(response => {
-        if (response.status === 403) {
-           return {url: "https://kinto.dev.mozaws.net/v1"};
-          }
-        return response.json();
-        })
-
+      var default_server = "https://kinto.dev.mozaws.net/v1";
+      var central_repository_server = storageServer+'/buckets/'+ bucket +'/collections/'+ collection + '/records/';
+      retrieveUserStorage(authInfo.username, central_repository_server, default_server, authInfo.headers)
+      .then(function(response){
+        userStorage = response;
+        console.log(userStorage);
+      })
           return authInfo;
 
     })
@@ -47,7 +39,7 @@ $(document).ready(function() {
       headers = authInfo.headers;
 
       // Kinto client with sync options.
-      var kinto = new Kinto({remote: storageServer,   //this will have authInfo.server (user's server)
+      var kinto = new Kinto({remote: userStorage,   //this will have authInfo.server (user's server)
                              bucket: bucket_id,
                              headers: headers,
                              dbPrefix: authInfo.username});
@@ -267,6 +259,8 @@ $(document).ready(function() {
       $('#login').html('<a href="#">Log out</a>');
       $('#login').click(function() {
         window.location.hash = '#public';
+        store.clear();
+        localStorage.removeItem("lastToken");
         window.location.reload();
         return false;
       });
@@ -291,14 +285,7 @@ $(document).ready(function() {
 
     var uri = loginURI(window.location.href);
     $('#login').html(`<a href="${uri}">Login with Firefox Account</a>`);
-    $('#disconnect').html('<a href="#">Disconnect</a>');
-    $('#disconnect').click(function() {
-      window.location.hash = '';
 
-      var request = store.clear();
-      window.location.reload();
-      return false;
-    });
     return Promise.resolve(authInfo);
   }
 });
