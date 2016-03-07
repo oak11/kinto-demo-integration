@@ -4,7 +4,6 @@ $(document).ready(function() {
   var profileServer = "https://stable.dev.lcip.org/profile/v1";
   var bucket_id = "default";
   var collection_id = "kinto_demo_calendar";
-  var userStorage = "";
 
   // Pusher app key (as deployed on Mozila demo server)
   var pusher_key = "01a9feaaf9ebb120d1a6";
@@ -20,30 +19,40 @@ $(document).ready(function() {
       if(!authInfo.hasOwnProperty("headers")){
         return authInfo;
       }
-      var bucket = 'central-repository'            //specify bucket and collection name here, or make it static in the url
-      var collection = 'users'
-      var default_server = "https://kinto.dev.mozaws.net/v1";
-      var central_repository_server = storageServer+'/buckets/'+ bucket +'/collections/'+ collection + '/records/';
-      retrieveUserStorage(authInfo.username, central_repository_server, default_server, authInfo.headers)
-      .then(function(response){
-
-        userStorage = response;
-
-
+      var bucket = 'central-repository';
+      var collection = 'users';
+      var defaultServer = "https://kinto.dev.mozaws.net/v1";
+      var userStorageURL = "https://kinto.dev.mozaws.net/v1";
+      var url = storageServer+'/buckets/'+ bucket +'/collections/'+ collection + '/records/' ;
+      KintoDiscovery.registerUserURL(authInfo.username, url, authInfo.headers, userStorageURL, localStorage)
+              .then(function(response){
+                console.log("the registered url response:"+response);
 
 
+      KintoDiscovery.retrieveUserURL(authInfo.username, url, authInfo.headers,
+                                defaultServer, localStorage)
+                .then(function(response){
+                  storageServer = response;
+                  console.log("retrieved:" + response);
+                })
+              })
 
+          return authInfo;
+
+    })
+
+    .then(function (authInfo) {
     //  window.location.hash = authInfo.token;
 
       headers = authInfo.headers;
 
       // Kinto client with sync options.
-      var kinto = new Kinto({remote: userStorage,   //this will have authInfo.server (user's server)
+      var kinto = new Kinto({remote: storageServer,   //this will have authInfo.server (user's server)
                              bucket: bucket_id,
                              headers: headers,
                              dbPrefix: authInfo.username});
       store = kinto.collection(collection_id);
-    })})
+    })
     // Show calendar
     .then(init)
     // Setup live-sync!
@@ -258,8 +267,6 @@ $(document).ready(function() {
       $('#login').html('<a href="#">Log out</a>');
       $('#login').click(function() {
         window.location.hash = '#public';
-        store.clear();
-        localStorage.removeItem("lastToken");
         window.location.reload();
         return false;
       });
@@ -284,7 +291,14 @@ $(document).ready(function() {
 
     var uri = loginURI(window.location.href);
     $('#login').html(`<a href="${uri}">Login with Firefox Account</a>`);
+    $('#disconnect').html('<a href="#">Disconnect</a>');
+    $('#disconnect').click(function() {
+      window.location.hash = '';
 
+      var request = store.clear();
+      window.location.reload();
+      return false;
+    });
     return Promise.resolve(authInfo);
   }
 });
